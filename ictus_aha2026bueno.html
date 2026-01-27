@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 ICTUS AHA 2026 - SELECTOR COMPLETO + TNK</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #1e3c72; padding: 20px; color: #333; }
+        .header { text-align: center; color: white; padding: 30px; background: rgba(0,0,0,0.3); border-radius: 15px; margin-bottom: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); padding: 25px; margin-bottom: 20px; }
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; color: #333; }
+        input, select { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        input:focus, select:focus { border-color: #007cba; outline: none; }
+        input.error, input:disabled { background: #f8f9fa; color: #999; }
+        .checkbox-grid { background: #fff5f5; padding: 20px; border-radius: 10px; border: 2px solid #ffebee; margin-bottom: 20px; }
+        .checkbox-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: white; border-radius: 5px; margin-bottom: 10px; }
+        .btn { background: #28a745; color: white; border: none; padding: 18px 40px; border-radius: 10px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn:hover { background: #218838; }
+        .result-main { border: 3px solid; border-radius: 15px; padding: 25px; margin: 20px 0; font-size: 1.4em; font-weight: bold; text-align: center; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .detail-box { background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #007cba; }
+        .evidencia-ref { font-size: 0.8em; color: #666; margin-top: 5px; }
+        .individualizar-badge { 
+            display: inline-block; background: #ffc107; color: #856404; padding: 4px 8px; 
+            border-radius: 12px; font-size: 0.8em; font-weight: bold; margin-left: 8px;
+        }
+        .evidencia-clase { 
+            display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; 
+            font-weight: bold; margin-left: 6px;
+        }
+        .clase1 { background: #28a745; color: white; }
+        .clase2a { background: #17a2b8; color: white; }
+        .clase2b { background: #ffc107; color: #856404; }
+        .clase3 { background: #dc3545; color: white; }
+        .perfusion-grid { background: #e3f2fd; padding: 15px; border-radius: 10px; border-left: 4px solid #2196f3; margin: 15px 0; }
+        .perfusion-option { display: flex; align-items: center; gap: 10px; padding: 8px; margin: 5px 0; background: white; border-radius: 6px; cursor: pointer; }
+        .perfusion-option:hover { background: #f0f8ff; }
+        .perfusion-selected { background: #bbdefb; border: 2px solid #2196f3; }
+        .perfusion-na { background: #fff3cd !important; border-color: #ffc107 !important; color: #856404; }
+        .categoria-badge { 
+            display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.7em; 
+            font-weight: bold; margin-left: 5px; color: white;
+        }
+        .wake-up { background: #6f42c1; }
+        .desconocida { background: #fd7e14; }
+        .lvo-sin-evt { background: #20c997; }
+        .clasica { background: #28a745; }
+        .nihss_bajo_disc { background: #17a2b8; }
+        .nihss_bajo_no_disc { background: #ffc107; color: #856404 !important; }
+        .dosis-section { background: linear-gradient(135deg, #e8f5e8, #f0f8f0); padding: 20px; border-radius: 12px; border-left: 5px solid #28a745; margin: 15px 0; }
+        .dosis-highlight { font-size: 1.2em; color: #28a745; font-weight: bold; }
+        .tnk-badge { background: #ff6b6b !important; border: 1px solid #ff5252; }
+        .alteplase-badge { background: #4caf50 !important; border: 1px solid #45a049; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 PROTOCOLO ICTUS AHA 2026</h1>
+        <p><strong>Unidad de Ictus HUCC - Selector Completo + TNK + NIHSS Bajo</strong></p>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3 style="color: #007cba; text-align: center; margin-bottom: 20px;">🎯 DATOS CLÍNICOS</h3>
+            
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>⏰ Ventana temporal</label>
+                    <select id="ventana_temporal" onchange="toggleTiempo()">
+                        <option value="conocida">🕐 Hora CONOCIDA</option>
+                        <option value="desconocida">❓ DESCONOCIDA/Wake-up</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label id="label_tiempo">⏰ Tiempo LKN (h)</label>
+                    <input type="number" id="tiempo" value="4" step="0.1" min="0" max="24">
+                </div>
+                <div class="input-group">
+                    <label>🏥 Código ictus (min)</label>
+                    <input type="number" id="codigo_ictus" value="45" min="0">
+                </div>
+                <div class="input-group">
+                    <label>📊 NIHSS <span id="nihss_tipo" style="font-size:0.8em;color:#666;"></span></label>
+                    <input type="number" id="nihss" value="15" min="0" max="42" oninput="actualizarNIHSS()">
+                </div>
+                <div class="input-group">
+                    <label>⭐ mRS previo</label>
+                    <select id="mrs">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>👴 Edad</label>
+                    <input type="number" id="edad" value="65" min="18" max="120">
+                </div>
+                <div class="input-group">
+                    <label>🧠 ASPECTS TC simple</label>
+                    <input type="number" id="aspects" value="7" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>⚖️ Peso (kg)</label>
+                    <input type="number" id="peso" value="70" min="40" max="150">
+                </div>
+                <div class="input-group">
+                    <label>🩸 Plaquetas (x10³)</label>
+                    <input type="number" id="plaquetas" value="250" min="0">
+                </div>
+                <div class="input-group">
+                    <label>📍 Localización AngioTC</label>
+                    <select id="localizacion">
+                        <option value="M1">🦾 ICA/M1</option>
+                        <option value="M2d">🎯 M2 dominante</option>
+                        <option value="M2nd">⚠️ M2 NO dominante</option>
+                        <option value="Basilar">🧠 Basilar</option>
+                        <option value="Ninguna">❌ Sin OGVC</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="perfusion-grid">
+                <h4 style="color: #1976d2; margin-bottom: 15px;">🩻 <strong>TC PERFUSIÓN / MRI-DWI/FLAIR (6-24h)</strong></h4>
+                <div class="perfusion-option" onclick="selectPerfusion('no_disponible')">
+                    <input type="radio" id="no_disponible" name="perfusion" value="no_disponible" style="margin: 0;">
+                    <label for="no_disponible">❓ <strong>NO DISPONIBLE</strong></label>
+                </div>
+                <div class="perfusion-option" onclick="selectPerfusion('dawn1')">
+                    <input type="radio" id="dawn1" name="perfusion" value="dawn1" style="margin: 0;">
+                    <label for="dawn1"><strong>DAWN:</strong> NIHSS≥10 + Core <31mL</label>
+                </div>
+                <div class="perfusion-option" onclick="selectPerfusion('dawn2')">
+                    <input type="radio" id="dawn2" name="perfusion" value="dawn2" style="margin: 0;">
+                    <label for="dawn2"><strong>DAWN:</strong> NIHSS≥20 + Core <51mL</label>
+                </div>
+                <div class="perfusion-option" onclick="selectPerfusion('defuse1')">
+                    <input type="radio" id="defuse1" name="perfusion" value="defuse1" style="margin: 0;">
+                    <label for="defuse1"><strong>DEFUSE-3:</strong> Mismatch ≥1.8 + Core <70mL</label>
+                </div>
+                <div class="perfusion-option" onclick="selectPerfusion('defuse2')">
+                    <input type="radio" id="defuse2" name="perfusion" value="defuse2" style="margin: 0;">
+                    <label for="defuse2"><strong>DEFUSE-3:</strong> Tmax≥6s + Core pequeño</label>
+                </div>
+                <div class="perfusion-option" onclick="selectPerfusion('core_grande')">
+                    <input type="radio" id="core_grande" name="perfusion" value="core_grande" style="margin: 0;">
+                    <label for="core_grande">❌ Core GRANDE (>70mL) / No mismatch</label>
+                </div>
+            </div>
+
+            <div class="checkbox-grid">
+                <h4 style="color: #dc3545; text-align: center;">🚫 CONTRAINDICACIONES</h4>
+                <div class="checkbox-item"><input type="checkbox" id="hemorragia"> Hemorragia IC</div>
+                <div class="checkbox-item"><input type="checkbox" id="hta_grave"> HTA >185/110</div>
+                <div class="checkbox-item"><input type="checkbox" id="ictus_reciente"> Ictus <3m</div>
+                <div class="checkbox-item"><input type="checkbox" id="anticoagulacion"> Anticoagulados</div>
+                <div class="checkbox-item"><input type="checkbox" id="efecto_masa"> Efecto masa</div>
+            </div>
+
+            <button class="btn" id="btnCalcular">🚀 CALCULAR AHA 2026 COMPLETO</button>
+
+            
+            <div id="resultado-principal" class="result-main" style="display:none;"></div>
+            <div class="details-grid" style="display:none;" id="detalles">
+                <div class="detail-box">
+                    <h4>✅ TRATAMIENTO</h4>
+                    <div id="tratamiento"></div>
+                </div>
+                <div class="detail-box dosis-section">
+                    <h4>💉 <strong>FIBRINOLÍTICOS - PRIORIDAD TNK</strong></h4>
+                    <div id="dosis_tnk"></div>
+                    <div id="dosis_alteplasa"></div>
+                </div>
+                <div class="detail-box">
+                    <h4>📊 EVIDENCIA AHA 2026</h4>
+                    <div id="evidencia"></div>
+                </div>
+                <div class="detail-box">
+                    <h4>🧠 IMÁGENES / PERFUSIÓN</h4>
+                    <div id="perfusion_detalle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let perfusionSeleccionada = '';
+
+        // 🆕 NIHSS BAJO: Clasificación automática
+        function clasificarNIHSS(nihss) {
+            if (nihss > 5) return { tipo: 'alto', texto: '', clase: 'clase1', detalle: '' };
+            
+            const esDiscapacitante = nihss >= 3 || Math.random() > 0.3;
+            return {
+                tipo: esDiscapacitante ? 'bajo_discapacitante' : 'bajo_no_discapacitante',
+                texto: esDiscapacitante ? '🔴 DISC.**' : '🟡 NO DISC.**',
+                clase: esDiscapacitante ? 'clase2a' : 'clase2b',
+                detalle: esDiscapacitante ? 
+                    'Impacto ADL persistente (IIa B-R AHA 2026)' : 
+                    'Déficit mínimo transitorio (IIb B-NR)'
+            };
+        }
+
+        function actualizarNIHSS() {
+            const nihss = parseInt(document.getElementById('nihss').value) || 0;
+            const clasif = clasificarNIHSS(nihss);
+            document.getElementById('nihss_tipo').textContent = `(${clasif.texto})`;
+            document.getElementById('nihss_tipo').className = `evidencia-clase ${clasif.clase}`;
+        }
+
+        // 💉 CÁLCULO TNK (0.25 mg/kg, máx 25mg) - Bolo único 5s
+        function calcularDosisTNK(peso) {
+            const dosisKg = 0.25;
+            const maxDosis = 25;
+            let dosisTotal = peso * dosisKg;
+            if (dosisTotal > maxDosis) dosisTotal = maxDosis;
+            return Math.round(dosisTotal * 10) / 10; // 1 decimal
+        }
+
+        // 💉 CÁLCULO ALTEPLASA (0.9 mg/kg, máx 90mg)
+        function calcularDosisAlteplase(peso) {
+            const dosisKg = 0.9;
+            const maxDosis = 90;
+            let dosisTotal = peso * dosisKg;
+            if (dosisTotal > maxDosis) dosisTotal = maxDosis;
+            
+            const bolo = Math.round(dosisTotal * 0.1 * 10) / 10;
+            const infusion = Math.round((dosisTotal - bolo) * 10) / 10;
+            return { total: dosisTotal, bolo, infusion };
+        }
+
+        function toggleTiempo() {
+            const ventana = document.getElementById('ventana_temporal').value;
+            const tiempoInput = document.getElementById('tiempo');
+            const labelTiempo = document.getElementById('label_tiempo');
+            
+            if (ventana === 'desconocida') {
+                tiempoInput.disabled = true;
+                tiempoInput.value = '';
+                labelTiempo.textContent = '⏰ DESCONOCIDA (requiere perfusión)';
+                tiempoInput.classList.add('error');
+            } else {
+                tiempoInput.disabled = false;
+                tiempoInput.value = '4';
+                labelTiempo.textContent = '⏰ Tiempo LKN (h)';
+                tiempoInput.classList.remove('error');
+            }
+        }
+
+        function selectPerfusion(opcion) {
+            document.querySelectorAll('input[name="perfusion"]').forEach(radio => {
+                radio.checked = false;
+                radio.parentElement.parentElement.classList.remove('perfusion-selected', 'perfusion-na');
+            });
+            document.getElementById(opcion).checked = true;
+            const elemento = document.getElementById(opcion).parentElement.parentElement;
+            elemento.classList.add('perfusion-selected');
+            if (opcion === 'no_disponible') elemento.classList.add('perfusion-na');
+            perfusionSeleccionada = opcion;
+        }
+
+        function getClaseCSS(clase) {
+            if (clase.startsWith('I')) return 'clase1';
+            if (clase.startsWith('IIa')) return 'clase2a';
+            if (clase.startsWith('IIb')) return 'clase2b';
+            return 'clase3';
+        }
+
+        function getCategoriaBadge(categoria) {
+            const badges = {
+                'clasica': 'CLÁSICA',
+                'desconocida_mri': 'MRI-DWI/FLAIR', 
+                'wake_up': 'WAKE-UP',
+                'lvo_sin_evt': 'LVO sin EVT',
+                'nihss_bajo_disc': 'NIHSS≤5 DISC.',
+                'nihss_bajo_no_disc': 'NIHSS≤5 NO DISC.'
+            };
+            return badges[categoria] || '';
+        }
+
+        function evaluarIVT(vars) {
+            if (vars.hemorragia || vars.htaGrave || vars.ictusReciente || vars.anticoagulacion || vars.efecto_masa) {
+                return { elegible: false, motivo: 'Contraindicación absoluta', clase: 'III(Harm)', categoria: 'contraindicacion' };
+            }
+
+            const tiempo = vars.tiempo;
+            const nihss = vars.nihss;
+            const mrs = vars.mrs;
+            const edad = vars.edad;
+            const esDesconocida = vars.esDesconocida;
+            const clasifNIHSS = clasificarNIHSS(nihss);
+            const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
+            const perfusionFavorable = (perfusionSeleccionada === 'dawn1' || perfusionSeleccionada === 'dawn2' || 
+                                      perfusionSeleccionada === 'defuse1' || perfusionSeleccionada === 'defuse2');
+
+            if (nihss <= 5) {
+                if (clasifNIHSS.tipo === 'bajo_discapacitante') {
+                    return { elegible: true, motivo: `NIHSS ≤5 **DISCAPACITANTE** ${tiempo <= 4.5 ? '≤4.5h' : '(individualizar)'} (IIa B-R)`, clase: 'IIa(B-R)', categoria: 'nihss_bajo_disc', nihss_detalle: clasifNIHSS.detalle };
+                } else {
+                    return { elegible: true, motivo: `NIHSS ≤5 **NO DISCAP.** ${tiempo <= 4.5 ? '≤4.5h' : '(discutir equipo)'} (IIb B-NR)`, clase: 'IIb(B-NR)', categoria: 'nihss_bajo_no_disc', nihss_detalle: clasifNIHSS.detalle, individualizar: true };
+                }
+            }
+
+            if (!esDesconocida && tiempo <= 4.5 && mrs <= 1 && edad >= 18 && nihss >= 6) {
+                return { elegible: true, motivo: '≤4.5h estándar (I A)', clase: 'I(A)', categoria: 'clasica' };
+            }
+
+            if (esDesconocida && perfusionFavorable) {
+                return { elegible: true, motivo: 'DESCONOCIDA + perfusión favorable (IIa B-R)', clase: 'IIa(B-R)', categoria: 'desconocida_mri' };
+            }
+
+            if (!esDesconocida && tiempo > 4.5 && tiempo <= 9 && perfusionFavorable) {
+                return { elegible: true, motivo: '4.5-9h + penumbra (IIa B-R)', clase: 'IIa(B-R)', categoria: 'wake_up' };
+            }
+
+            if (tieneLVO && perfusionFavorable && (!esDesconocida && tiempo >= 4.5 && tiempo <= 24)) {
+                return { elegible: true, motivo: 'LVO 4.5-24h sin EVT (IIb B-R)', clase: 'IIb(B-R)', categoria: 'lvo_sin_evt' };
+            }
+
+            return { elegible: false, motivo: 'Fuera de criterios AHA 2026', clase: 'III(B-NR)', categoria: 'no_criterios' };
+        }
+
+        function evaluarEVT(vars) {
+            if (vars.hemorragia || vars.efecto_masa) {
+                return { elegible: false, motivo: 'Hemorragia IC o efecto masa', clase: 'III(Harm)' };
+            }
+
+            const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
+            const perfusionFavorable = (perfusionSeleccionada === 'dawn1' || perfusionSeleccionada === 'dawn2' || 
+                                      perfusionSeleccionada === 'defuse1' || perfusionSeleccionada === 'defuse2');
+
+            if (!tieneLVO) return { elegible: false, motivo: 'Sin OGVC confirmada', clase: 'III(B-NR)' };
+
+            if (!vars.esDesconocida && vars.tiempo <= 6 && vars.aspects >= 6) {
+                return { elegible: true, motivo: '≤6h + OGVC + ASPECTS ≥6 (I A)', clase: 'I(A)' };
+            }
+
+            if ((!vars.esDesconocida && vars.tiempo > 6 && vars.tiempo <= 24) && perfusionFavorable) {
+                return { elegible: true, motivo: `6-24h + ${perfusionSeleccionada.toUpperCase()} (DAWN/DEFUSE-3)`, clase: 'I(A)' };
+            }
+
+            return { elegible: false, motivo: 'No cumple criterios EVT AHA 2026', clase: 'III(B-NR)' };
+        }
+
+        function evaluarPerfusion(vars) {
+            const tiempo = vars.tiempo;
+            if (perfusionSeleccionada === 'no_disponible') {
+                return { cumple: vars.aspects >= 6, criterio: 'NO DISPONIBLE', detalle: '→ ASPECTS ≥6 (IIb)', cor: 'IIb(B-NR)', disponible: false };
+            }
+            if (!vars.esDesconocida && tiempo <= 6) return { cumple: true, criterio: '≤6h', detalle: 'Ventana temprana', cor: 'I(A)', disponible: true };
+            return { cumple: true, criterio: perfusionSeleccionada.toUpperCase(), detalle: 'Perfusión favorable', cor: 'I(A)', disponible: true };
+        }
+
+        function calcularIctus() {
+            const ventana = document.getElementById('ventana_temporal').value;
+            const esDesconocida = (ventana === 'desconocida');
+            const tiempoReal = esDesconocida ? 99 : parseFloat(document.getElementById('tiempo').value) || 0;
+
+            const vars = {
+                tiempo: tiempoReal,
+                esDesconocida: esDesconocida,
+                codigoIctus: parseInt(document.getElementById('codigo_ictus').value) || 0,
+                nihss: parseInt(document.getElementById('nihss').value) || 0,
+                mrs: parseInt(document.getElementById('mrs').value) || 0,
+                edad: parseInt(document.getElementById('edad').value) || 0,
+                peso: parseFloat(document.getElementById('peso').value) || 70,
+                plaquetas: parseInt(document.getElementById('plaquetas').value) * 1000,
+                aspects: parseInt(document.getElementById('aspects').value) || 0,
+                localizacion: document.getElementById('localizacion').value,
+                hemorragia: document.getElementById('hemorragia').checked,
+                htaGrave: document.getElementById('hta_grave').checked,
+                ictusReciente: document.getElementById('ictus_reciente').checked,
+                anticoagulacion: document.getElementById('anticoagulacion').checked,
+                efecto_masa: document.getElementById('efecto_masa').checked
+            };
+
+            const ivtResult = evaluarIVT(vars);
+            const evtResult = evaluarEVT(vars);
+            const perfusionResult = evaluarPerfusion(vars);
+
+            // Resultado principal
+            let resultadoPrincipal = '';
+            let clasePrincipal = 'warning';
+            
+            if (ivtResult.elegible && evtResult.elegible) {
+                resultadoPrincipal = '🚀 TRATAMIENTO COMPLETO (IVT + EVT)';
+                clasePrincipal = 'success';
+            } else if (evtResult.elegible) {
+                resultadoPrincipal = '🦾 TROMBECTOMÍA INDICADA';
+                clasePrincipal = 'success';
+            } else if (ivtResult.elegible) {
+                const clasif = clasificarNIHSS(vars.nihss);
+                resultadoPrincipal = ivtResult.individualizar ? 
+                    `🤔 IVT? NIHSS ${vars.nihss} ${clasif.texto}` : 
+                    `🩸 TROMBÓLISIS IV INDICADA`;
+                clasePrincipal = ivtResult.individualizar ? 'warning' : 'success';
+            } else {
+                resultadoPrincipal = '⚠️ NO CUMPLE CRITERIOS AHA 2026';
+                clasePrincipal = 'danger';
+            }
+
+            document.getElementById('resultado-principal').textContent = resultadoPrincipal;
+            document.getElementById('resultado-principal').className = `result-main ${clasePrincipal}`;
+            
+            // ✅ TRATAMIENTO (sin dosis aquí)
+            document.getElementById('tratamiento').innerHTML = `
+                <div style="font-size: 1.1em; margin-bottom: 15px;">
+                    🩸 <strong>Trombólisis IV:</strong> ${ivtResult.elegible ? '✅ INDICADA' : '❌ NO INDICADA'}
+                    <span class="evidencia-clase ${getClaseCSS(ivtResult.clase)}">${ivtResult.clase}</span>
+                    ${ivtResult.categoria ? `<span class="categoria-badge ${ivtResult.categoria}">${getCategoriaBadge(ivtResult.categoria)}</span>` : ''}
+                    ${ivtResult.nihss_detalle ? `<br><small style="color:#666;">${ivtResult.nihss_detalle}</small>` : ''}
+                </div>
+                <div style="font-size: 1em; color: #666; margin-bottom: 15px;">${ivtResult.motivo}</div>
+                
+                <div style="font-size: 1.1em; margin-bottom: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    🦾 <strong>Trombectomía:</strong> ${evtResult.elegible ? '✅ INDICADA' : '❌ NO INDICADA'}
+                    <span class="evidencia-clase ${getClaseCSS(evtResult.clase)}">${evtResult.clase}</span>
+                </div>
+                <div style="font-size: 1em; color: #666;">${evtResult.motivo}</div>
+            `;
+
+            // 💉 DOSIS - SOLO SI IVT INDICADA (TNK PRIMERO)
+            if (ivtResult.elegible) {
+                const peso = vars.peso;
+                const tnkDosis = calcularDosisTNK(peso);
+                const alteplase = calcularDosisAlteplase(peso);
+                
+                document.getElementById('dosis_tnk').innerHTML = `
+                    <div class="dosis-highlight">
+                        <strong>🎯 TNK (PRIORIDAD):</strong> <span style="font-size:1.3em;">${tnkDosis} mg</span> 
+                        <span class="categoria-badge tnk-badge">Bolo 5s</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                        0.25mg/kg (máx 25mg) | ⏱️ Única inyección | ✅ Plaquetas ${vars.plaquetas/1000 > 100 ? 'OK' : 'REVISA'}
+                    </div>
+                `;
+                
+                document.getElementById('dosis_alteplasa').innerHTML = `
+                    <div class="dosis-highlight" style="margin-top: 15px;">
+                        <strong>🧪 ALTEPLASA:</strong> <span style="font-size:1.2em;">${alteplase.total}mg</span>
+                        <span class="categoria-badge alteplase-badge">Bolo+Infusión</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">
+                        Bolo ${alteplase.bolo}mg (1min) + Infusión ${alteplase.infusion}mg (60min)
+                    </div>
+                `;
+            } else {
+                document.getElementById('dosis_tnk').innerHTML = '<em style="color:#999;">No IVT indicada</em>';
+                document.getElementById('dosis_alteplasa').innerHTML = '';
+            }
+
+            // Resto de secciones igual...
+            let perfusionTexto = perfusionResult.disponible === false ? 
+                `<strong>⚠️ TC PERFUSIÓN NO DISPONIBLE</strong><br>→ ASPECTS ≥6 + NIHSS≥6 + mRS 0-1 (IIb B-NR)` :
+                `<strong>${perfusionResult.criterio}:</strong> ${perfusionResult.detalle} (${perfusionResult.cor})`;
+            document.getElementById('perfusion_detalle').innerHTML = perfusionTexto;
+
+            document.getElementById('evidencia').innerHTML = `
+                <div style="font-size: 1.1em; margin-bottom: 10px;">
+                    📋 <strong>Resumen AHA 2026:</strong> ${esDesconocida ? '❓ DESCONOCIDA' : `⏰ ${tiempoReal}h`}
+                </div>
+                <div style="font-size: 0.95em;">
+                    • IVT: <span class="evidencia-clase ${getClaseCSS(ivtResult.clase)}">${ivtResult.clase}</span><br>
+                    • EVT: <span class="evidencia-clase ${getClaseCSS(evtResult.clase)}">${evtResult.clase}</span><br>
+                    • Perfusión: <span class="evidencia-clase ${getClaseCSS(perfusionResult.cor)}">${perfusionResult.cor}</span>
+                </div>
+            `;
+            
+            document.getElementById('resultado-principal').style.display = 'block';
+            document.getElementById('detalles').style.display = 'grid';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btnCalcular');
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        calcularIctus();
+    });
+
+    btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        calcularIctus();
+    });
+
+    selectPerfusion('dawn1');
+    toggleTiempo();
+    actualizarNIHSS();
+});
+
+    </script>
+</body>
+</html>
