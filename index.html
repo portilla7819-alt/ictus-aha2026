@@ -290,46 +290,110 @@
         }
 
         function evaluarIVT(vars) {
-            if (vars.hemorragia || vars.htaGrave || vars.ictusReciente || vars.anticoagulacion || vars.efecto_masa) {
-                return { elegible: false, motivo: 'Contraindicación absoluta', clase: 'III(Harm)', categoria: 'contraindicacion' };
-            }
+    // 1) Contraindicaciones absolutas
+    if (vars.hemorragia || vars.htaGrave || vars.ictusReciente || vars.anticoagulacion || vars.efecto_masa) {
+        return {
+            elegible: false,
+            motivo: 'Contraindicación absoluta para IVT',
+            clase: 'III(Harm)',
+            categoria: 'contraindicacion'
+        };
+    }
 
-            const tiempo = vars.tiempo;
-            const nihss = vars.nihss;
-            const mrs = vars.mrs;
-            const edad = vars.edad;
-            const esDesconocida = vars.esDesconocida;
-            const clasifNIHSS = clasificarNIHSS(nihss);
-            const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
-            const perfusionFavorable = (perfusionSeleccionada === 'dawn1' || perfusionSeleccionada === 'dawn2' || 
-                                      perfusionSeleccionada === 'defuse1' || perfusionSeleccionada === 'defuse2');
+    const tiempo = vars.tiempo;
+    const nihss = vars.nihss;
+    const mrs = vars.mrs;
+    const edad = vars.edad;
+    const esDesconocida = vars.esDesconocida;
+    const clasifNIHSS = clasificarNIHSS(nihss);
+    const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
+    const perfusionFavorable = (
+        perfusionSeleccionada === 'dawn1' ||
+        perfusionSeleccionada === 'dawn2' ||
+        perfusionSeleccionada === 'defuse1' ||
+        perfusionSeleccionada === 'defuse2'
+    );
 
-            if (nihss <= 5) {
-                if (clasifNIHSS.tipo === 'bajo_discapacitante') {
-                    return { elegible: true, motivo: `NIHSS ≤5 **DISCAPACITANTE** ${tiempo <= 4.5 ? '≤4.5h' : '(individualizar)'} (IIa B-R)`, clase: 'IIa(B-R)', categoria: 'nihss_bajo_disc', nihss_detalle: clasifNIHSS.detalle };
-                } else {
-                    return { elegible: true, motivo: `NIHSS ≤5 **NO DISCAP.** ${tiempo <= 4.5 ? '≤4.5h' : '(discutir equipo)'} (IIb B-NR)`, clase: 'IIb(B-NR)', categoria: 'nihss_bajo_no_disc', nihss_detalle: clasifNIHSS.detalle, individualizar: true };
-                }
-            }
+    // 2) Freno por ASPECTS bajo en cualquier ventana
+    if (vars.aspects < 6) {
+        return {
+            elegible: false,
+            motivo: 'ASPECTS <6: alto riesgo de HIC con IVT, priorizar EVT / manejo individualizado',
+            clase: 'III(B-NR)',
+            categoria: 'no_criterios'
+        };
+    }
 
-            if (!esDesconocida && tiempo <= 4.5 && mrs <= 1 && edad >= 18 && nihss >= 6) {
-                return { elegible: true, motivo: '≤4.5h estándar (I A)', clase: 'I(A)', categoria: 'clasica' };
-            }
-
-            if (esDesconocida && perfusionFavorable) {
-                return { elegible: true, motivo: 'DESCONOCIDA + perfusión favorable (IIa B-R)', clase: 'IIa(B-R)', categoria: 'desconocida_mri' };
-            }
-
-            if (!esDesconocida && tiempo > 4.5 && tiempo <= 9 && perfusionFavorable) {
-                return { elegible: true, motivo: '4.5-9h + penumbra (IIa B-R)', clase: 'IIa(B-R)', categoria: 'wake_up' };
-            }
-
-            if (tieneLVO && perfusionFavorable && (!esDesconocida && tiempo >= 4.5 && tiempo <= 24)) {
-                return { elegible: true, motivo: 'LVO 4.5-24h sin EVT (IIb B-R)', clase: 'IIb(B-R)', categoria: 'lvo_sin_evt' };
-            }
-
-            return { elegible: false, motivo: 'Fuera de criterios AHA 2026', clase: 'III(B-NR)', categoria: 'no_criterios' };
+    // 3) NIHSS bajo (≤5): rama aparte
+    if (nihss <= 5) {
+        if (clasifNIHSS.tipo === 'bajo_discapacitante') {
+            return {
+                elegible: true,
+                motivo: `NIHSS ≤5 DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(individualizar >4.5h)' } (IIa B-R)`,
+                clase: 'IIa(B-R)',
+                categoria: 'nihss_bajo_disc',
+                nihss_detalle: clasifNIHSS.detalle
+            };
+        } else {
+            return {
+                elegible: true,
+                motivo: `NIHSS ≤5 NO DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(discutir equipo >4.5h)' } (IIb B-NR)`,
+                clase: 'IIb(B-NR)',
+                categoria: 'nihss_bajo_no_disc',
+                nihss_detalle: clasifNIHSS.detalle,
+                individualizar: true
+            };
         }
+    }
+
+    // 4) Ventana clásica ≤4.5h
+    if (!esDesconocida && tiempo <= 4.5 && mrs <= 1 && edad >= 18 && nihss >= 6) {
+        return {
+            elegible: true,
+            motivo: 'Ventana clásica ≤4.5h con mRS 0–1 y NIHSS ≥6 (I A)',
+            clase: 'I(A)',
+            categoria: 'clasica'
+        };
+    }
+
+    // 5) Tiempo desconocido + perfusión favorable
+    if (esDesconocida && perfusionFavorable) {
+        return {
+            elegible: true,
+            motivo: 'Hora DESCONOCIDA + perfusión/MRI favorable (IIa B-R)',
+            clase: 'IIa(B-R)',
+            categoria: 'desconocida_mri'
+        };
+    }
+
+    // 6) Ventana extendida 4.5–9h + perfusión favorable (solo con ASPECTS ≥6 por filtro previo)
+    if (!esDesconocida && tiempo > 4.5 && tiempo <= 9 && perfusionFavorable) {
+        return {
+            elegible: true,
+            motivo: 'Ventana 4.5–9h con penumbra/perfusión favorable (IIa B-R)',
+            clase: 'IIa(B-R)',
+            categoria: 'wake_up'
+        };
+    }
+
+    // 7) LVO 4.5–24h sin EVT posible, con perfusión favorable
+    if (tieneLVO && perfusionFavorable && !esDesconocida && tiempo >= 4.5 && tiempo <= 24) {
+        return {
+            elegible: true,
+            motivo: 'LVO 4.5–24h sin EVT viable + perfusión favorable (IIb B-R)',
+            clase: 'IIb(B-R)',
+            categoria: 'lvo_sin_evt'
+        };
+    }
+
+    // 8) Resto de escenarios: no IVT
+    return {
+        elegible: false,
+        motivo: 'No cumple criterios de IVT según ventana, imagen y clínica',
+        clase: 'III(B-NR)',
+        categoria: 'no_criterios'
+    };
+}
 
         function evaluarEVT(vars) {
             if (vars.hemorragia || vars.efecto_masa) {
@@ -502,3 +566,4 @@
     </script>
 </body>
 </html>
+
