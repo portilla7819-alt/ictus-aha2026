@@ -395,7 +395,7 @@
     };
 }
 
-       function evaluarEVT(vars) {
+           function evaluarEVT(vars) {
     // Contraindicaciones duras para EVT
     if (vars.hemorragia || vars.efecto_masa) {
         return {
@@ -412,9 +412,10 @@
     const aspects = vars.aspects;
     const esDesconocida = vars.esDesconocida;
 
-    const esICA_M1 = (vars.localizacion === 'M1');
-    const esM2_dom = (vars.localizacion === 'M2d');
-    const esM2_no_dom = (vars.localizacion === 'M2nd');
+    // Mapeo de localización según tu selector
+    const esICA_M1 = (vars.localizacion === 'M1');      // "ICA/M1" en tu select
+    const esM2_dom = (vars.localizacion === 'M2d');     // M2 dominante
+    const esM2_no_dom = (vars.localizacion === 'M2nd'); // M2 NO dominante / más distal
     const esBasilar = (vars.localizacion === 'Basilar');
 
     const perfusionFavorable = (
@@ -424,6 +425,7 @@
         perfusionSeleccionada === 'defuse2'
     );
 
+    // 0) Sin OGVC proximal (anterior) ni basilar → no EVT
     if (!esICA_M1 && !esM2_dom && !esBasilar) {
         return {
             elegible: false,
@@ -432,13 +434,178 @@
         };
     }
 
-    // A) ICA/M1 0–6 h, 6–24 h (ASPECTS 0–10) …
-    // B) M2 dominante / no dominante …
-    // C) Basilar …
-    // D) Respaldo 6–24 h con perfusión …
-    // E) Resto …
+    // ─────────────────────────────────────────────
+    // A) ANTERIOR CIRCULATION: ICA/M1 (AHA 2026)
+    // ─────────────────────────────────────────────
 
-    // (pega aquí todo el cuerpo que te envié, sin cortar nada)
+    // 1) 0–6 h, ICA/M1, ASPECTS 3–10, NIHSS ≥6, mRS 0–1 → I A
+    if (!esDesconocida &&
+        tiempo <= 6 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        mrs <= 1 &&
+        aspects >= 3 && aspects <= 10) {
+        return {
+            elegible: true,
+            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–10 (I A, AHA 2026)',
+            clase: 'I(A)'
+        };
+    }
+
+    // 2) 6–24 h, ICA/M1, ASPECTS ≥6, NIHSS ≥6, mRS 0–1 → I A
+    if (!esDesconocida &&
+        tiempo > 6 && tiempo <= 24 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        mrs <= 1 &&
+        aspects >= 6) {
+        return {
+            elegible: true,
+            motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (I A, AHA 2026)',
+            clase: 'I(A)'
+        };
+    }
+
+    // 3) 6–24 h, ICA/M1, ASPECTS 3–5, <80 años, NIHSS ≥6, mRS 0–1 → I A (selected)
+    if (!esDesconocida &&
+        tiempo > 6 && tiempo <= 24 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        mrs <= 1 &&
+        aspects >= 3 && aspects <= 5 &&
+        edad < 80) {
+        return {
+            elegible: true,
+            motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–5, <80 años (I A, selected patients)',
+            clase: 'I(A)'
+        };
+    }
+
+    // 4) 0–6 h, ICA/M1, ASPECTS 0–2, <80 años, NIHSS ≥6, mRS 0–1 → IIa B‑R
+    if (!esDesconocida &&
+        tiempo <= 6 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        mrs <= 1 &&
+        aspects >= 0 && aspects <= 2 &&
+        edad < 80) {
+        return {
+            elegible: true,
+            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 0–2, <80 años (IIa B-R)',
+            clase: 'IIa(B-R)'
+        };
+    }
+
+    // 5) 0–6 h, ICA/M1, ASPECTS ≥6, mRS 2 → IIa B‑NR
+    if (!esDesconocida &&
+        tiempo <= 6 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        mrs === 2 &&
+        aspects >= 6) {
+        return {
+            elegible: true,
+            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 2 + ASPECTS ≥6 (IIa B-NR)',
+            clase: 'IIa(B-NR)'
+        };
+    }
+
+    // 6) 0–6 h, ICA/M1, ASPECTS ≥6, mRS 3–4 → IIb B‑NR
+    if (!esDesconocida &&
+        tiempo <= 6 &&
+        esICA_M1 &&
+        nihss >= 6 &&
+        (mrs === 3 || mrs === 4) &&
+        aspects >= 6) {
+        return {
+            elegible: true,
+            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 3–4 + ASPECTS ≥6 (IIb B-NR)',
+            clase: 'IIb(B-NR)'
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // B) ANTERIOR: M2 DOMINANTE / NO DOMINANTE
+    // ─────────────────────────────────────────────
+
+    // 7) 0–6 h, M2 dominante, ASPECTS ≥6, NIHSS ≥6, mRS 0–1 → IIa B‑NR
+    if (!esDesconocida &&
+        tiempo <= 6 &&
+        esM2_dom &&
+        nihss >= 6 &&
+        mrs <= 1 &&
+        aspects >= 6) {
+        return {
+            elegible: true,
+            motivo: '0–6h + M2 dominante + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (IIa B-NR)',
+            clase: 'IIa(B-NR)'
+        };
+    }
+
+    // 8) M2 no dominante / distal MCA / ACA / PCA → no recomendado (III: no beneficio)
+    if (esM2_no_dom) {
+        return {
+            elegible: false,
+            motivo: 'M2 no dominante/distal o territorios más distales: EVT no recomendada (III: no beneficio)',
+            clase: 'III(No Benefit)'
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // C) POSTERIOR CIRCULATION: BASILAR (4.7.3)
+    // ─────────────────────────────────────────────
+
+    if (esBasilar) {
+        // Usamos ASPECTS como proxy de PC-ASPECTS (≥6 = daño leve)
+        if (aspects >= 6 && mrs <= 1 && tiempo <= 24) {
+            if (nihss >= 10) {
+                // Recomendación 1: I A
+                return {
+                    elegible: true,
+                    motivo: 'Basilar + NIHSS ≥10 + mRS 0–1 + ASPECTS posterior conservado (≈PC-ASPECTS ≥6), ≤24h (I A, AHA 2026)',
+                    clase: 'I(A)'
+                };
+            }
+            if (nihss >= 6 && nihss <= 9) {
+                // Recomendación 2: IIb B‑R (eficacia no bien establecida)
+                return {
+                    elegible: true,
+                    motivo: 'Basilar + NIHSS 6–9 + mRS 0–1 + ASPECTS posterior conservado (≈PC-ASPECTS ≥6), ≤24h (IIb B-R, eficacia menos establecida)',
+                    clase: 'IIb(B-R)'
+                };
+            }
+        }
+        // Fuera de estos criterios, no hay recomendación fuerte
+        return {
+            elegible: false,
+            motivo: 'Basilar sin criterios claros (PC-ASPECTS bajo, NIHSS muy bajo o discapacidad previa relevante): valorar caso individualmente',
+            clase: 'III(B-NR)'
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // D) EXTENDED WINDOW CON PERFUSIÓN (YA CUBIERTO ARRIBA
+    //     PARA ICA/M1; mantiene compatibilidad con tu lógica previa)
+    // ─────────────────────────────────────────────
+
+    if (!esDesconocida &&
+        tiempo > 6 && tiempo <= 24 &&
+        esICA_M1 &&
+        perfusionFavorable &&
+        nihss >= 6 &&
+        mrs <= 1) {
+        // En la práctica, muchos de estos ya encajan en los puntos 2 o 3;
+        // esta rama actúa como respaldo si se selecciona por DAWN/DEFUSE.
+        return {
+            elegible: true,
+            motivo: `6–24h + ICA/M1 + selección por imagen favorable (${perfusionSeleccionada.toUpperCase()}) (I A, DAWN/DEFUSE-3)`,
+            clase: 'I(A)'
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // E) Resto de escenarios
+    // ─────────────────────────────────────────────
 
     return {
         elegible: false,
@@ -446,7 +613,6 @@
         clase: 'III(B-NR)'
     };
 }
-
 
         function evaluarPerfusion(vars) {
             const tiempo = vars.tiempo;
@@ -597,5 +763,6 @@
     </script>
 </body>
 </html>
+
 
 
