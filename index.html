@@ -395,27 +395,58 @@
     };
 }
 
-        function evaluarEVT(vars) {
-            if (vars.hemorragia || vars.efecto_masa) {
-                return { elegible: false, motivo: 'Hemorragia IC o efecto masa', clase: 'III(Harm)' };
-            }
+       function evaluarEVT(vars) {
+    // Contraindicaciones duras para EVT
+    if (vars.hemorragia || vars.efecto_masa) {
+        return {
+            elegible: false,
+            motivo: 'Hemorragia intracraneal o efecto masa significativo',
+            clase: 'III(Harm)'
+        };
+    }
 
-            const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
-            const perfusionFavorable = (perfusionSeleccionada === 'dawn1' || perfusionSeleccionada === 'dawn2' || 
-                                      perfusionSeleccionada === 'defuse1' || perfusionSeleccionada === 'defuse2');
+    const tiempo = vars.tiempo;
+    const nihss = vars.nihss;
+    const mrs = vars.mrs;
+    const edad = vars.edad;
+    const aspects = vars.aspects;
+    const esDesconocida = vars.esDesconocida;
 
-            if (!tieneLVO) return { elegible: false, motivo: 'Sin OGVC confirmada', clase: 'III(B-NR)' };
+    const esICA_M1 = (vars.localizacion === 'M1');
+    const esM2_dom = (vars.localizacion === 'M2d');
+    const esM2_no_dom = (vars.localizacion === 'M2nd');
+    const esBasilar = (vars.localizacion === 'Basilar');
 
-            if (!vars.esDesconocida && vars.tiempo <= 6 && vars.aspects >= 6) {
-                return { elegible: true, motivo: '≤6h + OGVC + ASPECTS ≥6 (I A)', clase: 'I(A)' };
-            }
+    const perfusionFavorable = (
+        perfusionSeleccionada === 'dawn1' ||
+        perfusionSeleccionada === 'dawn2' ||
+        perfusionSeleccionada === 'defuse1' ||
+        perfusionSeleccionada === 'defuse2'
+    );
 
-            if ((!vars.esDesconocida && vars.tiempo > 6 && vars.tiempo <= 24) && perfusionFavorable) {
-                return { elegible: true, motivo: `6-24h + ${perfusionSeleccionada.toUpperCase()} (DAWN/DEFUSE-3)`, clase: 'I(A)' };
-            }
+    if (!esICA_M1 && !esM2_dom && !esBasilar) {
+        return {
+            elegible: false,
+            motivo: 'Sin oclusión de gran vaso proximal (ICA/M1/M2 dominante/Basilar)',
+            clase: 'III(B-NR)'
+        };
+    }
 
-            return { elegible: false, motivo: 'No cumple criterios EVT AHA 2026', clase: 'III(B-NR)' };
-        }
+    // A) ICA/M1 0–6 h, 6–24 h (ASPECTS 0–10) …
+    // B) M2 dominante / no dominante …
+    // C) Basilar …
+    // D) Respaldo 6–24 h con perfusión …
+    // E) Resto …
+
+    // (pega aquí todo el cuerpo que te envié, sin cortar nada)
+
+    return {
+        elegible: false,
+        motivo: 'No cumple criterios establecidos para EVT según AHA 2026 (valorar caso individualmente)',
+        clase: 'III(B-NR)'
+    };
+}
+
 
         function evaluarPerfusion(vars) {
             const tiempo = vars.tiempo;
@@ -566,4 +597,5 @@
     </script>
 </body>
 </html>
+
 
