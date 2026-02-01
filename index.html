@@ -120,6 +120,18 @@
                     <input type="number" id="plaquetas" value="250" min="0">
                 </div>
                 <div class="input-group">
+                    <label>🧪 INR</label>
+                    <input type="number" id="inr" value="1.0" step="0.1" min="0.8" max="5">
+                </div>
+                <div class="input-group">
+                    <label>💊 Anticoagulante oral</label>
+                    <select id="anticoagulante">
+                        <option value="ninguno">Ninguno</option>
+                        <option value="acenocumarol">Acenocumarol/warfarina</option>
+                        <option value="acod">ACOD (DOAC)</option>
+                    </select>
+                </div>
+                <div class="input-group">
                     <label>📍 Localización AngioTC</label>
                     <select id="localizacion">
                         <option value="M1">🦾 ICA/M1</option>
@@ -164,13 +176,11 @@
                 <div class="checkbox-item"><input type="checkbox" id="hemorragia"> Hemorragia IC</div>
                 <div class="checkbox-item"><input type="checkbox" id="hta_grave"> HTA >185/110</div>
                 <div class="checkbox-item"><input type="checkbox" id="ictus_reciente"> Ictus <3m</div>
-                <div class="checkbox-item"><input type="checkbox" id="anticoagulacion"> Anticoagulados</div>
                 <div class="checkbox-item"><input type="checkbox" id="efecto_masa"> Efecto masa</div>
             </div>
 
             <button class="btn" id="btnCalcular">🚀 CALCULAR AHA 2026 COMPLETO</button>
 
-            
             <div id="resultado-principal" class="result-main" style="display:none;"></div>
             <div class="details-grid" style="display:none;" id="detalles">
                 <div class="detail-box">
@@ -190,6 +200,10 @@
                     <h4>🧠 IMÁGENES / PERFUSIÓN</h4>
                     <div id="perfusion_detalle"></div>
                 </div>
+                <div class="detail-box">
+                    <h4>🧾 MATRIZ AHA vs ESO</h4>
+                    <div id="matriz_aha_eso"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -197,10 +211,8 @@
     <script>
         let perfusionSeleccionada = '';
 
-        // 🆕 NIHSS BAJO: Clasificación automática
         function clasificarNIHSS(nihss) {
             if (nihss > 5) return { tipo: 'alto', texto: '', clase: 'clase1', detalle: '' };
-            
             const esDiscapacitante = nihss >= 3 || Math.random() > 0.3;
             return {
                 tipo: esDiscapacitante ? 'bajo_discapacitante' : 'bajo_no_discapacitante',
@@ -219,22 +231,19 @@
             document.getElementById('nihss_tipo').className = `evidencia-clase ${clasif.clase}`;
         }
 
-        // 💉 CÁLCULO TNK (0.25 mg/kg, máx 25mg) - Bolo único 5s
         function calcularDosisTNK(peso) {
             const dosisKg = 0.25;
             const maxDosis = 25;
             let dosisTotal = peso * dosisKg;
             if (dosisTotal > maxDosis) dosisTotal = maxDosis;
-            return Math.round(dosisTotal * 10) / 10; // 1 decimal
+            return Math.round(dosisTotal * 10) / 10;
         }
 
-        // 💉 CÁLCULO ALTEPLASA (0.9 mg/kg, máx 90mg)
         function calcularDosisAlteplase(peso) {
             const dosisKg = 0.9;
             const maxDosis = 90;
             let dosisTotal = peso * dosisKg;
             if (dosisTotal > maxDosis) dosisTotal = maxDosis;
-            
             const bolo = Math.round(dosisTotal * 0.1 * 10) / 10;
             const infusion = Math.round((dosisTotal - bolo) * 10) / 10;
             return { total: dosisTotal, bolo, infusion };
@@ -244,7 +253,6 @@
             const ventana = document.getElementById('ventana_temporal').value;
             const tiempoInput = document.getElementById('tiempo');
             const labelTiempo = document.getElementById('label_tiempo');
-            
             if (ventana === 'desconocida') {
                 tiempoInput.disabled = true;
                 tiempoInput.value = '';
@@ -290,329 +298,311 @@
         }
 
         function evaluarIVT(vars) {
-    // 1) Contraindicaciones absolutas
-    if (vars.hemorragia || vars.htaGrave || vars.ictusReciente || vars.anticoagulacion || vars.efecto_masa) {
-        return {
-            elegible: false,
-            motivo: 'Contraindicación absoluta para IVT',
-            clase: 'III(Harm)',
-            categoria: 'contraindicacion'
-        };
-    }
+            const inr = vars.inr || 1.0;
+            const tipoAnticoagulante = vars.tipoAnticoagulante;
+            const anticoagCI =
+                (tipoAnticoagulante === 'acenocumarol' && inr > 1.7) ||
+                (tipoAnticoagulante === 'acod');
 
-    const tiempo = vars.tiempo;
-    const nihss = vars.nihss;
-    const mrs = vars.mrs;
-    const edad = vars.edad;
-    const esDesconocida = vars.esDesconocida;
-    const clasifNIHSS = clasificarNIHSS(nihss);
-    const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
-    const perfusionFavorable = (
-        perfusionSeleccionada === 'dawn1' ||
-        perfusionSeleccionada === 'dawn2' ||
-        perfusionSeleccionada === 'defuse1' ||
-        perfusionSeleccionada === 'defuse2'
-    );
+            if (vars.hemorragia || vars.htaGrave || vars.ictusReciente || vars.efecto_masa || anticoagCI) {
+                let motivo = 'Contraindicación absoluta para IVT';
+                if (tipoAnticoagulante === 'acenocumarol' && inr > 1.7) {
+                    motivo = 'INR >1.7 con acenocumarol/warfarina: contraindicación de IVT';
+                } else if (tipoAnticoagulante === 'acod') {
+                    motivo = 'ACOD (DOAC) reciente: contraindicación de IVT';
+                } else if (vars.hemorragia) {
+                    motivo = 'Hemorragia intracraneal';
+                } else if (vars.efecto_masa) {
+                    motivo = 'Efecto masa significativo';
+                } else if (vars.ictusReciente) {
+                    motivo = 'Ictus isquémico <3 meses';
+                } else if (vars.htaGrave) {
+                    motivo = 'HTA >185/110 no controlada';
+                }
+                return {
+                    elegible: false,
+                    motivo,
+                    clase: 'III(Harm)',
+                    categoria: 'contraindicacion'
+                };
+            }
 
-    // 2) Freno por ASPECTS bajo en cualquier ventana
-    if (vars.aspects < 6) {
-        return {
-            elegible: false,
-            motivo: 'ASPECTS <6: alto riesgo de HIC con IVT, priorizar EVT / manejo individualizado',
-            clase: 'III(B-NR)',
-            categoria: 'no_criterios'
-        };
-    }
+            const tiempo = vars.tiempo;
+            const nihss = vars.nihss;
+            const mrs = vars.mrs;
+            const edad = vars.edad;
+            const esDesconocida = vars.esDesconocida;
+            const clasifNIHSS = clasificarNIHSS(nihss);
+            const tieneLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
+            const perfusionFavorable = (
+                perfusionSeleccionada === 'dawn1' ||
+                perfusionSeleccionada === 'dawn2' ||
+                perfusionSeleccionada === 'defuse1' ||
+                perfusionSeleccionada === 'defuse2'
+            );
 
-    // 3) NIHSS bajo (≤5): rama aparte
-    if (nihss <= 5) {
-        if (clasifNIHSS.tipo === 'bajo_discapacitante') {
-            return {
-                elegible: true,
-                motivo: `NIHSS ≤5 DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(individualizar >4.5h)' } (IIa B-R)`,
-                clase: 'IIa(B-R)',
-                categoria: 'nihss_bajo_disc',
-                nihss_detalle: clasifNIHSS.detalle
-            };
-        } else {
-            return {
-                elegible: true,
-                motivo: `NIHSS ≤5 NO DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(discutir equipo >4.5h)' } (IIb B-NR)`,
-                clase: 'IIb(B-NR)',
-                categoria: 'nihss_bajo_no_disc',
-                nihss_detalle: clasifNIHSS.detalle,
-                individualizar: true
-            };
-        }
-    }
+            if (vars.aspects < 6) {
+                return {
+                    elegible: false,
+                    motivo: 'ASPECTS <6: alto riesgo de HIC con IVT, priorizar EVT / manejo individualizado',
+                    clase: 'III(B-NR)',
+                    categoria: 'no_criterios'
+                };
+            }
 
-    // 4) Ventana clásica ≤4.5h
-    if (!esDesconocida && tiempo <= 4.5 && mrs <= 1 && edad >= 18 && nihss >= 6) {
-        return {
-            elegible: true,
-            motivo: 'Ventana clásica ≤4.5h con mRS 0–1 y NIHSS ≥6 (I A)',
-            clase: 'I(A)',
-            categoria: 'clasica'
-        };
-    }
+            if (nihss <= 5) {
+                if (clasifNIHSS.tipo === 'bajo_discapacitante') {
+                    return {
+                        elegible: true,
+                        motivo: `NIHSS ≤5 DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(individualizar >4.5h)' } (IIa B-R)`,
+                        clase: 'IIa(B-R)',
+                        categoria: 'nihss_bajo_disc',
+                        nihss_detalle: clasifNIHSS.detalle
+                    };
+                } else {
+                    return {
+                        elegible: true,
+                        motivo: `NIHSS ≤5 NO DISCAPACITANTE ${tiempo <= 4.5 ? '≤4.5h' : '(discutir equipo >4.5h)' } (IIb B-NR)`,
+                        clase: 'IIb(B-NR)',
+                        categoria: 'nihss_bajo_no_disc',
+                        nihss_detalle: clasifNIHSS.detalle,
+                        individualizar: true
+                    };
+                }
+            }
 
-    // 5) Tiempo desconocido + perfusión favorable
-    if (esDesconocida && perfusionFavorable) {
-        return {
-            elegible: true,
-            motivo: 'Hora DESCONOCIDA + perfusión/MRI favorable (IIa B-R)',
-            clase: 'IIa(B-R)',
-            categoria: 'desconocida_mri'
-        };
-    }
-
-    // 6) Ventana extendida 4.5–9h + perfusión favorable (solo con ASPECTS ≥6 por filtro previo)
-    if (!esDesconocida && tiempo > 4.5 && tiempo <= 9 && perfusionFavorable) {
-        return {
-            elegible: true,
-            motivo: 'Ventana 4.5–9h con penumbra/perfusión favorable (IIa B-R)',
-            clase: 'IIa(B-R)',
-            categoria: 'wake_up'
-        };
-    }
-
-    // 7) LVO 4.5–24h sin EVT posible, con perfusión favorable
-    if (tieneLVO && perfusionFavorable && !esDesconocida && tiempo >= 4.5 && tiempo <= 24) {
-        return {
-            elegible: true,
-            motivo: 'LVO 4.5–24h sin EVT viable + perfusión favorable (IIb B-R)',
-            clase: 'IIb(B-R)',
-            categoria: 'lvo_sin_evt'
-        };
-    }
-
-    // 8) Resto de escenarios: no IVT
-    return {
-        elegible: false,
-        motivo: 'No cumple criterios de IVT según ventana, imagen y clínica',
-        clase: 'III(B-NR)',
-        categoria: 'no_criterios'
-    };
-}
-
-           function evaluarEVT(vars) {
-    // Contraindicaciones duras para EVT
-    if (vars.hemorragia || vars.efecto_masa) {
-        return {
-            elegible: false,
-            motivo: 'Hemorragia intracraneal o efecto masa significativo',
-            clase: 'III(Harm)'
-        };
-    }
-
-    const tiempo = vars.tiempo;
-    const nihss = vars.nihss;
-    const mrs = vars.mrs;
-    const edad = vars.edad;
-    const aspects = vars.aspects;
-    const esDesconocida = vars.esDesconocida;
-
-    // Mapeo de localización según tu selector
-    const esICA_M1 = (vars.localizacion === 'M1');      // "ICA/M1" en tu select
-    const esM2_dom = (vars.localizacion === 'M2d');     // M2 dominante
-    const esM2_no_dom = (vars.localizacion === 'M2nd'); // M2 NO dominante / más distal
-    const esBasilar = (vars.localizacion === 'Basilar');
-
-    const perfusionFavorable = (
-        perfusionSeleccionada === 'dawn1' ||
-        perfusionSeleccionada === 'dawn2' ||
-        perfusionSeleccionada === 'defuse1' ||
-        perfusionSeleccionada === 'defuse2'
-    );
-
-    // 0) Sin OGVC proximal (anterior) ni basilar → no EVT
-    if (!esICA_M1 && !esM2_dom && !esBasilar) {
-        return {
-            elegible: false,
-            motivo: 'Sin oclusión de gran vaso proximal (ICA/M1/M2 dominante/Basilar)',
-            clase: 'III(B-NR)'
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // A) ANTERIOR CIRCULATION: ICA/M1 (AHA 2026)
-    // ─────────────────────────────────────────────
-
-    // 1) 0–6 h, ICA/M1, ASPECTS 3–10, NIHSS ≥6, mRS 0–1 → I A
-    if (!esDesconocida &&
-        tiempo <= 6 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        mrs <= 1 &&
-        aspects >= 3 && aspects <= 10) {
-        return {
-            elegible: true,
-            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–10 (I A, AHA 2026)',
-            clase: 'I(A)'
-        };
-    }
-
-    // 2) 6–24 h, ICA/M1, ASPECTS ≥6, NIHSS ≥6, mRS 0–1 → I A
-    if (!esDesconocida &&
-        tiempo > 6 && tiempo <= 24 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        mrs <= 1 &&
-        aspects >= 6) {
-        return {
-            elegible: true,
-            motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (I A, AHA 2026)',
-            clase: 'I(A)'
-        };
-    }
-
-    // 3) 6–24 h, ICA/M1, ASPECTS 3–5, <80 años, NIHSS ≥6, mRS 0–1 → I A (selected)
-    if (!esDesconocida &&
-        tiempo > 6 && tiempo <= 24 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        mrs <= 1 &&
-        aspects >= 3 && aspects <= 5 &&
-        edad < 80) {
-        return {
-            elegible: true,
-            motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–5, <80 años (I A, selected patients)',
-            clase: 'I(A)'
-        };
-    }
-
-    // 4) 0–6 h, ICA/M1, ASPECTS 0–2, <80 años, NIHSS ≥6, mRS 0–1 → IIa B‑R
-    if (!esDesconocida &&
-        tiempo <= 6 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        mrs <= 1 &&
-        aspects >= 0 && aspects <= 2 &&
-        edad < 80) {
-        return {
-            elegible: true,
-            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 0–2, <80 años (IIa B-R)',
-            clase: 'IIa(B-R)'
-        };
-    }
-
-    // 5) 0–6 h, ICA/M1, ASPECTS ≥6, mRS 2 → IIa B‑NR
-    if (!esDesconocida &&
-        tiempo <= 6 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        mrs === 2 &&
-        aspects >= 6) {
-        return {
-            elegible: true,
-            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 2 + ASPECTS ≥6 (IIa B-NR)',
-            clase: 'IIa(B-NR)'
-        };
-    }
-
-    // 6) 0–6 h, ICA/M1, ASPECTS ≥6, mRS 3–4 → IIb B‑NR
-    if (!esDesconocida &&
-        tiempo <= 6 &&
-        esICA_M1 &&
-        nihss >= 6 &&
-        (mrs === 3 || mrs === 4) &&
-        aspects >= 6) {
-        return {
-            elegible: true,
-            motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 3–4 + ASPECTS ≥6 (IIb B-NR)',
-            clase: 'IIb(B-NR)'
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // B) ANTERIOR: M2 DOMINANTE / NO DOMINANTE
-    // ─────────────────────────────────────────────
-
-    // 7) 0–6 h, M2 dominante, ASPECTS ≥6, NIHSS ≥6, mRS 0–1 → IIa B‑NR
-    if (!esDesconocida &&
-        tiempo <= 6 &&
-        esM2_dom &&
-        nihss >= 6 &&
-        mrs <= 1 &&
-        aspects >= 6) {
-        return {
-            elegible: true,
-            motivo: '0–6h + M2 dominante + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (IIa B-NR)',
-            clase: 'IIa(B-NR)'
-        };
-    }
-
-    // 8) M2 no dominante / distal MCA / ACA / PCA → no recomendado (III: no beneficio)
-    if (esM2_no_dom) {
-        return {
-            elegible: false,
-            motivo: 'M2 no dominante/distal o territorios más distales: EVT no recomendada (III: no beneficio)',
-            clase: 'III(No Benefit)'
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // C) POSTERIOR CIRCULATION: BASILAR (4.7.3)
-    // ─────────────────────────────────────────────
-
-    if (esBasilar) {
-        // Usamos ASPECTS como proxy de PC-ASPECTS (≥6 = daño leve)
-        if (aspects >= 6 && mrs <= 1 && tiempo <= 24) {
-            if (nihss >= 10) {
-                // Recomendación 1: I A
+            if (!esDesconocida && tiempo <= 4.5 && mrs <= 1 && edad >= 18 && nihss >= 6) {
                 return {
                     elegible: true,
-                    motivo: 'Basilar + NIHSS ≥10 + mRS 0–1 + ASPECTS posterior conservado (≈PC-ASPECTS ≥6), ≤24h (I A, AHA 2026)',
+                    motivo: 'Ventana clásica ≤4.5h con mRS 0–1 y NIHSS ≥6 (I A)',
+                    clase: 'I(A)',
+                    categoria: 'clasica'
+                };
+            }
+
+            if (esDesconocida && perfusionFavorable) {
+                return {
+                    elegible: true,
+                    motivo: 'Hora DESCONOCIDA + perfusión/MRI favorable (IIa B-R)',
+                    clase: 'IIa(B-R)',
+                    categoria: 'desconocida_mri'
+                };
+            }
+
+            if (!esDesconocida && tiempo > 4.5 && tiempo <= 9 && perfusionFavorable) {
+                return {
+                    elegible: true,
+                    motivo: 'Ventana 4.5–9h con penumbra/perfusión favorable (IIa B-R)',
+                    clase: 'IIa(B-R)',
+                    categoria: 'wake_up'
+                };
+            }
+
+            return {
+                elegible: false,
+                motivo: 'No cumple criterios de IVT según ventana, imagen y clínica',
+                clase: 'III(B-NR)',
+                categoria: 'no_criterios'
+            };
+        }
+
+        function evaluarEVT(vars) {
+            if (vars.hemorragia || vars.efecto_masa) {
+                return {
+                    elegible: false,
+                    motivo: 'Hemorragia intracraneal o efecto masa significativo',
+                    clase: 'III(Harm)'
+                };
+            }
+
+            const tiempo = vars.tiempo;
+            const nihss = vars.nihss;
+            const mrs = vars.mrs;
+            const edad = vars.edad;
+            const aspects = vars.aspects;
+            const esDesconocida = vars.esDesconocida;
+
+            const esICA_M1 = (vars.localizacion === 'M1');
+            const esM2_dom = (vars.localizacion === 'M2d');
+            const esM2_no_dom = (vars.localizacion === 'M2nd');
+            const esBasilar = (vars.localizacion === 'Basilar');
+
+            const perfusionFavorable = (
+                perfusionSeleccionada === 'dawn1' ||
+                perfusionSeleccionada === 'dawn2' ||
+                perfusionSeleccionada === 'defuse1' ||
+                perfusionSeleccionada === 'defuse2'
+            );
+
+            if (!esICA_M1 && !esM2_dom && !esBasilar) {
+                return {
+                    elegible: false,
+                    motivo: 'Sin oclusión de gran vaso proximal (ICA/M1/M2 dominante/Basilar)',
+                    clase: 'III(B-NR)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo <= 6 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                mrs <= 1 &&
+                aspects >= 3 && aspects <= 10) {
+                return {
+                    elegible: true,
+                    motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–10 (I A)',
                     clase: 'I(A)'
                 };
             }
-            if (nihss >= 6 && nihss <= 9) {
-                // Recomendación 2: IIb B‑R (eficacia no bien establecida)
+
+            if (!esDesconocida &&
+                tiempo > 6 && tiempo <= 24 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                mrs <= 1 &&
+                aspects >= 6) {
                 return {
                     elegible: true,
-                    motivo: 'Basilar + NIHSS 6–9 + mRS 0–1 + ASPECTS posterior conservado (≈PC-ASPECTS ≥6), ≤24h (IIb B-R, eficacia menos establecida)',
-                    clase: 'IIb(B-R)'
+                    motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (I A)',
+                    clase: 'I(A)'
                 };
             }
+
+            if (!esDesconocida &&
+                tiempo > 6 && tiempo <= 24 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                mrs <= 1 &&
+                aspects >= 3 && aspects <= 5 &&
+                edad < 80) {
+                return {
+                    elegible: true,
+                    motivo: '6–24h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 3–5, <80 años (I A, selected)',
+                    clase: 'I(A)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo <= 6 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                mrs <= 1 &&
+                aspects >= 0 && aspects <= 2 &&
+                edad < 80) {
+                return {
+                    elegible: true,
+                    motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 0–1 + ASPECTS 0–2, <80 años (IIa B-R)',
+                    clase: 'IIa(B-R)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo <= 6 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                mrs === 2 &&
+                aspects >= 6) {
+                return {
+                    elegible: true,
+                    motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 2 + ASPECTS ≥6 (IIa B-NR)',
+                    clase: 'IIa(B-NR)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo <= 6 &&
+                esICA_M1 &&
+                nihss >= 6 &&
+                (mrs === 3 || mrs === 4) &&
+                aspects >= 6) {
+                return {
+                    elegible: true,
+                    motivo: '0–6h + ICA/M1 + NIHSS ≥6 + mRS 3–4 + ASPECTS ≥6 (IIb B-NR)',
+                    clase: 'IIb(B-NR)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo <= 6 &&
+                esM2_dom &&
+                nihss >= 6 &&
+                mrs <= 1 &&
+                aspects >= 6) {
+                return {
+                    elegible: true,
+                    motivo: '0–6h + M2 dominante + NIHSS ≥6 + mRS 0–1 + ASPECTS ≥6 (IIa B-NR)',
+                    clase: 'IIa(B-NR)'
+                };
+            }
+
+            if (esM2_no_dom) {
+                return {
+                    elegible: false,
+                    motivo: 'M2 no dominante/distal: EVT no recomendada (III - no beneficio)',
+                    clase: 'III(No Benefit)'
+                };
+            }
+
+            if (esBasilar) {
+                if (aspects >= 6 && mrs <= 1 && tiempo <= 24) {
+                    if (nihss >= 10) {
+                        return {
+                            elegible: true,
+                            motivo: 'Basilar + NIHSS ≥10 + mRS 0–1 + ASPECTS posterior conservado ≤24h (I A)',
+                            clase: 'I(A)'
+                        };
+                    }
+                    if (nihss >= 6 && nihss <= 9) {
+                        return {
+                            elegible: true,
+                            motivo: 'Basilar + NIHSS 6–9 + mRS 0–1 + ASPECTS posterior conservado ≤24h (IIb B-R)',
+                            clase: 'IIb(B-R)'
+                        };
+                    }
+                }
+                return {
+                    elegible: false,
+                    motivo: 'Basilar sin criterios claros (PC-ASPECTS bajo, NIHSS muy bajo o mRS alto)',
+                    clase: 'III(B-NR)'
+                };
+            }
+
+            if (!esDesconocida &&
+                tiempo > 6 && tiempo <= 24 &&
+                esICA_M1 &&
+                perfusionFavorable &&
+                nihss >= 6 &&
+                mrs <= 1) {
+                return {
+                    elegible: true,
+                    motivo: `6–24h + ICA/M1 + selección por imagen favorable (${perfusionSeleccionada.toUpperCase()}) (I A, DAWN/DEFUSE-3)`,
+                    clase: 'I(A)'
+                };
+            }
+
+            if (esDesconocida) {
+                const esLVO = esICA_M1 || esBasilar || esM2_dom;
+                const perfFav = (
+                    perfusionSeleccionada === 'dawn1' ||
+                    perfusionSeleccionada === 'dawn2' ||
+                    perfusionSeleccionada === 'defuse1' ||
+                    perfusionSeleccionada === 'defuse2'
+                );
+                if (esLVO && perfFav && nihss >= 6 && mrs <= 1 && aspects >= 3) {
+                    return {
+                        elegible: true,
+                        motivo: 'Wake-up/desconocido + LVO + perfusión/MRI favorable tipo DAWN/DEFUSE-3 (I A, AHA 2026)',
+                        clase: 'I(A)'
+                    };
+                }
+            }
+
+            return {
+                elegible: false,
+                motivo: 'No cumple criterios establecidos para EVT según AHA 2026 (valorar caso individualmente)',
+                clase: 'III(B-NR)'
+            };
         }
-        // Fuera de estos criterios, no hay recomendación fuerte
-        return {
-            elegible: false,
-            motivo: 'Basilar sin criterios claros (PC-ASPECTS bajo, NIHSS muy bajo o discapacidad previa relevante): valorar caso individualmente',
-            clase: 'III(B-NR)'
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // D) EXTENDED WINDOW CON PERFUSIÓN (YA CUBIERTO ARRIBA
-    //     PARA ICA/M1; mantiene compatibilidad con tu lógica previa)
-    // ─────────────────────────────────────────────
-
-    if (!esDesconocida &&
-        tiempo > 6 && tiempo <= 24 &&
-        esICA_M1 &&
-        perfusionFavorable &&
-        nihss >= 6 &&
-        mrs <= 1) {
-        // En la práctica, muchos de estos ya encajan en los puntos 2 o 3;
-        // esta rama actúa como respaldo si se selecciona por DAWN/DEFUSE.
-        return {
-            elegible: true,
-            motivo: `6–24h + ICA/M1 + selección por imagen favorable (${perfusionSeleccionada.toUpperCase()}) (I A, DAWN/DEFUSE-3)`,
-            clase: 'I(A)'
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // E) Resto de escenarios
-    // ─────────────────────────────────────────────
-
-    return {
-        elegible: false,
-        motivo: 'No cumple criterios establecidos para EVT según AHA 2026 (valorar caso individualmente)',
-        clase: 'III(B-NR)'
-    };
-}
 
         function evaluarPerfusion(vars) {
             const tiempo = vars.tiempo;
@@ -621,6 +611,149 @@
             }
             if (!vars.esDesconocida && tiempo <= 6) return { cumple: true, criterio: '≤6h', detalle: 'Ventana temprana', cor: 'I(A)', disponible: true };
             return { cumple: true, criterio: perfusionSeleccionada.toUpperCase(), detalle: 'Perfusión favorable', cor: 'I(A)', disponible: true };
+        }
+
+        function clasificarEscenario(vars) {
+            const { tiempo, esDesconocida } = vars;
+            const hayLVO = (vars.localizacion === 'M1' || vars.localizacion === 'Basilar' || vars.localizacion === 'M2d');
+            const perfDisp = (perfusionSeleccionada !== 'no_disponible');
+            const perfFav = ['dawn1','dawn2','defuse1','defuse2'].includes(perfusionSeleccionada);
+
+            if (esDesconocida) {
+                if (!perfDisp || !perfFav) return 'WUS_sin_mismatch';
+                return hayLVO ? 'WUS_LVO_mismatch' : 'WUS_noLVO_mismatch';
+            }
+
+            const t = tiempo;
+            if (t <= 4.5) return hayLVO ? 'early_LVO' : 'early_noLVO';
+
+            if (t > 4.5 && t <= 9) {
+                if (perfDisp && perfFav) return hayLVO ? '45_9_LVO_perf' : '45_9_noLVO_perf';
+                return hayLVO ? '45_9_LVO_noPerf' : '45_9_noLVO_noPerf';
+            }
+
+            if (t > 9 && t <= 24) {
+                if (perfDisp && perfFav) return hayLVO ? 'late_LVO_perf' : 'late_noLVO_perf';
+                return hayLVO ? 'late_LVO_noPerf' : 'late_noLVO_noPerf';
+            }
+
+            return 'fuera_ventana';
+        }
+
+        function decisionAHA_ESO(vars) {
+            const escenario = clasificarEscenario(vars);
+            const { nihss, aspects, mrs, edad } = vars;
+
+            let res = {
+                IVT_AHA: 'no',      grado_IVT_AHA: '',
+                EVT_AHA: 'no',      grado_EVT_AHA: '',
+                IVT_ESO: 'no',      grado_IVT_ESO: '',
+                EVT_ESO: 'no',      grado_EVT_ESO: ''
+            };
+
+            if (escenario === 'early_LVO' || escenario === 'early_noLVO') {
+                if (nihss >= 6) {
+                    res.IVT_AHA = 'sí'; res.grado_IVT_AHA = 'I(A)';
+                    res.IVT_ESO = 'sí'; res.grado_IVT_ESO = 'I(A)';
+                } else {
+                    res.IVT_AHA = 'no'; res.grado_IVT_AHA = 'III(B-NR)';
+                    res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no rutinaria NIHSS bajo';
+                }
+                if (escenario === 'early_LVO' && nihss >= 6 && aspects >= 3 && mrs <= 1) {
+                    res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'I(A)';
+                    res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'fuerte (≈I,A)';
+                }
+                return res;
+            }
+
+            if (escenario === '45_9_LVO_perf') {
+                if (nihss >= 6 && aspects >= 3 && mrs <= 1) {
+                    res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'I(A)';
+                    res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'fuerte (DAWN/DEFUSE)';
+                }
+                res.IVT_AHA = 'sí'; res.grado_IVT_AHA = 'IIa(B-R)';
+                res.IVT_ESO = 'sí'; res.grado_IVT_ESO = 'condicional a favor';
+                return res;
+            }
+
+            if (escenario === '45_9_noLVO_perf') {
+                res.EVT_AHA = 'no'; res.grado_EVT_AHA = 'no LVO';
+                res.EVT_ESO = 'no'; res.grado_EVT_ESO = 'no LVO';
+                res.IVT_AHA = 'sí'; res.grado_IVT_AHA = 'IIa(B-R)';
+                res.IVT_ESO = 'sí'; res.grado_IVT_ESO = 'condicional/fuerte si mismatch MRI';
+                return res;
+            }
+
+            if (escenario === '45_9_noLVO_noPerf') {
+                res.IVT_AHA = 'no'; res.grado_IVT_AHA = '>4.5h sin imagen: III(B-NR)';
+                res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no recomendada >4.5h sin imagen';
+                return res;
+            }
+
+            if (escenario === '45_9_LVO_noPerf') {
+                if (nihss >= 6 && aspects >= 3 && mrs <= 1) {
+                    res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'I(A)';
+                    res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'fuerte (TC simple aceptada)';
+                }
+                res.IVT_AHA = 'no'; res.grado_IVT_AHA = '>4.5h sin imagen: III(B-NR)';
+                res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no rutinaria';
+                return res;
+            }
+
+            if (escenario === 'WUS_LVO_mismatch') {
+                if (nihss >= 6 && aspects >= 3 && mrs <= 1) {
+                    res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'I(A)';
+                    res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'fuerte (DAWN/DEFUSE WUS)';
+                }
+                res.IVT_AHA = 'sí'; res.grado_IVT_AHA = 'IIa(B-R)';
+                res.IVT_ESO = 'sí'; res.grado_IVT_ESO = 'condicional (MRI/perfusión)';
+                return res;
+            }
+
+            if (escenario === 'WUS_noLVO_mismatch') {
+                res.EVT_AHA = 'no'; res.grado_EVT_AHA = 'no LVO';
+                res.EVT_ESO = 'no'; res.grado_EVT_ESO = 'no LVO';
+                res.IVT_AHA = 'sí'; res.grado_IVT_AHA = 'IIa(B-R)';
+                res.IVT_ESO = 'sí'; res.grado_IVT_ESO = 'fuerte (wake-up sin MT)';
+                return res;
+            }
+
+            if (escenario === 'WUS_sin_mismatch') {
+                res.IVT_AHA = 'no'; res.grado_IVT_AHA = 'III(B-NR)';
+                res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no recomendada';
+                return res;
+            }
+
+            if (escenario === 'late_LVO_perf') {
+                if (nihss >= 6 && aspects >= 3 && mrs <= 1) {
+                    if (aspects >= 6 || (aspects >= 3 && edad < 80)) {
+                        res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'I(A)';
+                        res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'fuerte';
+                    } else {
+                        res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'IIa(B-R)';
+                        res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'condicional';
+                    }
+                }
+                res.IVT_AHA = 'no'; res.grado_IVT_AHA = '>9h: III(B-NR)';
+                res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no recomendada';
+                return res;
+            }
+
+            if (escenario === 'late_noLVO_perf' || escenario === 'late_LVO_noPerf' || escenario === 'late_noLVO_noPerf') {
+                if (escenario === 'late_LVO_noPerf' && nihss >= 6 && aspects >= 3 && mrs <= 1 && edad < 80) {
+                    res.EVT_AHA = 'sí'; res.grado_EVT_AHA = 'IIa(B-R)';
+                    res.EVT_ESO = 'sí'; res.grado_EVT_ESO = 'condicional';
+                }
+                res.IVT_AHA = 'no'; res.grado_IVT_AHA = 'III(B-NR)';
+                res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no recomendada';
+                return res;
+            }
+
+            res.IVT_AHA = 'no'; res.grado_IVT_AHA = 'III';
+            res.EVT_AHA = 'no'; res.grado_EVT_AHA = 'III';
+            res.IVT_ESO = 'no'; res.grado_IVT_ESO = 'no';
+            res.EVT_ESO = 'no'; res.grado_EVT_ESO = 'no';
+            return res;
         }
 
         function calcularIctus() {
@@ -642,15 +775,16 @@
                 hemorragia: document.getElementById('hemorragia').checked,
                 htaGrave: document.getElementById('hta_grave').checked,
                 ictusReciente: document.getElementById('ictus_reciente').checked,
-                anticoagulacion: document.getElementById('anticoagulacion').checked,
-                efecto_masa: document.getElementById('efecto_masa').checked
+                efecto_masa: document.getElementById('efecto_masa').checked,
+                inr: parseFloat(document.getElementById('inr').value) || 1.0,
+                tipoAnticoagulante: document.getElementById('anticoagulante').value
             };
 
             const ivtResult = evaluarIVT(vars);
             const evtResult = evaluarEVT(vars);
             const perfusionResult = evaluarPerfusion(vars);
+            const matriz = decisionAHA_ESO(vars);
 
-            // Resultado principal
             let resultadoPrincipal = '';
             let clasePrincipal = 'warning';
             
@@ -674,7 +808,6 @@
             document.getElementById('resultado-principal').textContent = resultadoPrincipal;
             document.getElementById('resultado-principal').className = `result-main ${clasePrincipal}`;
             
-            // ✅ TRATAMIENTO (sin dosis aquí)
             document.getElementById('tratamiento').innerHTML = `
                 <div style="font-size: 1.1em; margin-bottom: 15px;">
                     🩸 <strong>Trombólisis IV:</strong> ${ivtResult.elegible ? '✅ INDICADA' : '❌ NO INDICADA'}
@@ -691,7 +824,6 @@
                 <div style="font-size: 1em; color: #666;">${evtResult.motivo}</div>
             `;
 
-            // 💉 DOSIS - SOLO SI IVT INDICADA (TNK PRIMERO)
             if (ivtResult.elegible) {
                 const peso = vars.peso;
                 const tnkDosis = calcularDosisTNK(peso);
@@ -721,7 +853,6 @@
                 document.getElementById('dosis_alteplasa').innerHTML = '';
             }
 
-            // Resto de secciones igual...
             let perfusionTexto = perfusionResult.disponible === false ? 
                 `<strong>⚠️ TC PERFUSIÓN NO DISPONIBLE</strong><br>→ ASPECTS ≥6 + NIHSS≥6 + mRS 0-1 (IIb B-NR)` :
                 `<strong>${perfusionResult.criterio}:</strong> ${perfusionResult.detalle} (${perfusionResult.cor})`;
@@ -737,32 +868,44 @@
                     • Perfusión: <span class="evidencia-clase ${getClaseCSS(perfusionResult.cor)}">${perfusionResult.cor}</span>
                 </div>
             `;
+
+            document.getElementById('matriz_aha_eso').innerHTML = `
+                <div style="font-size:0.95em;">
+                    <strong>AHA 2026</strong><br>
+                    • IVT: ${matriz.IVT_AHA.toUpperCase()} ${matriz.grado_IVT_AHA ? '('+matriz.grado_IVT_AHA+')' : ''}<br>
+                    • EVT: ${matriz.EVT_AHA.toUpperCase()} ${matriz.grado_EVT_AHA ? '('+matriz.grado_EVT_AHA+')' : ''}<br><br>
+                    <strong>ESO/ESMINT</strong><br>
+                    • IVT: ${matriz.IVT_ESO.toUpperCase()} ${matriz.grado_IVT_ESO ? '('+matriz.grado_IVT_ESO+')' : ''}<br>
+                    • EVT: ${matriz.EVT_ESO.toUpperCase()} ${matriz.grado_EVT_ESO ? '('+matriz.grado_EVT_ESO+')' : ''}
+                </div>
+            `;
             
             document.getElementById('resultado-principal').style.display = 'block';
             document.getElementById('detalles').style.display = 'grid';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('btnCalcular');
+            const btn = document.getElementById('btnCalcular');
 
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        calcularIctus();
-    });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                calcularIctus();
+            });
 
-    btn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        calcularIctus();
-    });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                calcularIctus();
+            });
 
-    selectPerfusion('dawn1');
-    toggleTiempo();
-    actualizarNIHSS();
-});
-
+            selectPerfusion('dawn1');
+            toggleTiempo();
+            actualizarNIHSS();
+        });
     </script>
 </body>
 </html>
+
+
 
 
 
