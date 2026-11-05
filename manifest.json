@@ -1,0 +1,18 @@
+{
+  "name": "Calculadora de Ictus Isquémico AHA 2026",
+  "short_name": "Ictus AHA",
+  "description": "Calculadora clínica offline para ictus isquémico agudo basada en guías AHA/ASA.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b5394",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
